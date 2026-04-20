@@ -40,7 +40,7 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.expiration:86400000}")
     private Long expiration;
 
     private static final String TOKEN_BLACKLIST_PREFIX = "token:blacklist:";
