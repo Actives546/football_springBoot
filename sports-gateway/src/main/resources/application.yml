@@ -1,0 +1,32 @@
+spring:
+  cloud:
+    gateway:
+      # 全局跨域配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origin-patterns: '*'  # 允许所有来源
+            allowed-headers: '*'  # 允许所有请求头
+            allowed-methods: '*'  # 允许所有请求方法
+            allow-credentials: true  # 允许携带凭证
+            max-age: 3600  # 预检请求缓存时间
+      # 路由配置
+      routes:
+        # 用户服务路由配置
+        - id: sports-user
+          uri: lb://sports-user  # 负载均衡到用户服务
+          predicates:
+            - Path=/user/**  # 路径匹配规则
+          filters:
+            - StripPrefix=1  # 去掉第一层路径前缀（/user）
+      # 开启从注册中心动态创建路由
+      discovery:
+        locator:
+          enabled: true  # 开启服务发现路由
+          lower-case-service-id: true  # 服务名小写
+
+# 日志配置
+logging:
+  level:
+    org.springframework.cloud.gateway: debug
+    com.alibaba.nacos: warn
