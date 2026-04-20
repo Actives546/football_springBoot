@@ -1,0 +1,106 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- 继承父工程 -->
+    <parent>
+        <groupId>com.sports</groupId>
+        <artifactId>sports-cloud</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <!-- 鉴权微服务：sports-auth -->
+    <artifactId>sports-auth</artifactId>
+    <packaging>jar</packaging>
+    <name>sports-auth</name>
+    <description>数字化体育赋能平台 - 鉴权微服务（登录、注册、验证码、JWT令牌管理）</description>
+
+    <!-- 模块依赖 -->
+    <dependencies>
+        <!-- Spring Web 基础依赖 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        
+        <!-- Spring Cloud OpenFeign 远程调用 -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-openfeign</artifactId>
+        </dependency>
+        
+        <!-- Spring Cloud Alibaba Nacos 服务注册与发现 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-discovery</artifactId>
+        </dependency>
+        
+        <!-- Spring Cloud Alibaba Nacos 配置中心 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+        
+        <!-- Spring Cloud 负载均衡 -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-loadbalancer</artifactId>
+        </dependency>
+        
+        <!-- Redis 分布式缓存（存储验证码） -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+        
+        <!-- Knife4j Swagger 接口文档 -->
+        <dependency>
+            <groupId>com.github.xiaoymin</groupId>
+            <artifactId>knife4j-spring-boot-starter</artifactId>
+        </dependency>
+        
+        <!-- Validation 参数校验 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-validation</artifactId>
+        </dependency>
+        
+        <!-- JWT 令牌 -->
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-api</artifactId>
+            <version>0.11.5</version>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-impl</artifactId>
+            <version>0.11.5</version>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.jsonwebtoken</groupId>
+            <artifactId>jjwt-jackson</artifactId>
+            <version>0.11.5</version>
+            <scope>runtime</scope>
+        </dependency>
+        
+        <!-- 公共模块依赖 -->
+        <dependency>
+            <groupId>com.sports</groupId>
+            <artifactId>sports-common</artifactId>
+        </dependency>
+    </dependencies>
+
+    <!-- 构建配置 -->
+    <build>
+        <plugins>
+            <!-- Spring Boot Maven插件 -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>

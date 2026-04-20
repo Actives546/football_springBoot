@@ -1,0 +1,6 @@
+# sports-auth.yml
+jwt:
+  secret: sports-cloud-jwt-secret-key-2024-production
+  expiration: 86400000
+  header: Authorization
+  prefix: Bearer
