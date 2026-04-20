@@ -9,6 +9,18 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: 123456
+    database: 0
+    timeout: 10000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-wait: -1ms
+        max-idle: 8
+        min-idle: 0
   cloud:
     nacos:
       discovery:
@@ -25,6 +37,12 @@ spring:
         namespace: public
         group: DEFAULT_GROUP
         file-extension: yml
+
+jwt:
+  secret: sports-cloud-jwt-default-secret-key-2024-very-long-and-secure-key-for-hs256
+  expiration: 86400000
+  header: Authorization
+  prefix: Bearer
 
 knife4j:
   enable: true

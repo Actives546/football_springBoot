@@ -27,7 +27,7 @@ public class UserController {
     @ApiOperation("根据用户名查询用户")
     public Result<UserDTO> getByUsername(
             @ApiParam(value = "用户名", required = true)
-            @RequestParam String username) {
+            @RequestParam("username") String username) {
         User user = userService.getByUsername(username);
         UserDTO userDTO = BeanConvertUtil.convert(user, UserDTO.class);
         if (userDTO != null && user != null) {
@@ -40,7 +40,7 @@ public class UserController {
     @ApiOperation("根据手机号查询用户")
     public Result<UserDTO> getByPhone(
             @ApiParam(value = "手机号", required = true)
-            @RequestParam String phone) {
+            @RequestParam("phone") String phone) {
         User user = userService.getByPhone(phone);
         UserDTO userDTO = BeanConvertUtil.convert(user, UserDTO.class);
         if (userDTO != null && user != null) {
@@ -67,7 +67,7 @@ public class UserController {
     @ApiOperation("根据ID查询用户")
     public Result<UserDTO> getById(
             @ApiParam(value = "用户ID", required = true)
-            @RequestParam Long id) {
+            @RequestParam("id") Long id) {
         User user = userService.getById(id);
         UserDTO userDTO = BeanConvertUtil.convert(user, UserDTO.class);
         if (userDTO != null && user != null) {
