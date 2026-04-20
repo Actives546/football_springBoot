@@ -1,34 +1,18 @@
-# ============================================
-# Nacos 用户服务配置文件：sports-user.yml
-# 用户微服务（sports-user）专属配置
-# ============================================
-
-# 服务端口
-server:
-  port: 8081
-
-# Spring 配置
+# sports-user.yml
 spring:
-  application:
-    name: sports-user
-  
-  # Spring Boot 2.7+ 与 Springfox 3.0.0 兼容性配置
-  mvc:
-    pathmatch:
-      matching-strategy: ant_path_matcher
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/sports_user?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      pool-name: SportsHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
 
-# Knife4j Swagger 配置
-knife4j:
-  enable: true
-  setting:
-    language: zh_cn
-  openapi:
-    title: 用户服务接口文档
-    description: 数字化体育赋能平台 - 用户微服务接口文档
-    version: 1.0.0
-
-# 用户服务特有日志级别（覆盖公共配置）
-logging:
-  level:
-    com.sports.user: debug
-    com.sports.common: debug
+mybatis-plus:
+  type-aliases-package: com.sports.user.entity   # 实体类包路径
+  mapper-locations: classpath*:/mapper/**/*.xml

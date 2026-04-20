@@ -1,34 +1,9 @@
-# ============================================
-# Nacos 公共配置文件：common-config.yml
-# 所有微服务共享的配置，包括：
-# - MySQL 数据库配置
-# - Redis 分布式缓存配置
-# - RabbitMQ 消息中间件配置
-# - Elasticsearch 搜索引擎配置
-# - MyBatis-Plus 配置
-# - 日志配置
-# ============================================
-
-# MySQL 数据库配置
+# common-config.yml
 spring:
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/sports_user?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: root
-    hikari:
-      minimum-idle: 5
-      maximum-pool-size: 20
-      idle-timeout: 30000
-      pool-name: SportsHikariCP
-      max-lifetime: 1800000
-      connection-timeout: 30000
-
-  # Redis 分布式缓存配置
   redis:
     host: 127.0.0.1
     port: 6379
-    password: 
+    password: 123456
     database: 0
     timeout: 10000ms
     lettuce:
@@ -37,8 +12,6 @@ spring:
         max-wait: -1ms
         max-idle: 8
         min-idle: 0
-
-  # RabbitMQ 消息中间件配置
   rabbitmq:
     host: 127.0.0.1
     port: 5672
@@ -53,32 +26,24 @@ spring:
         concurrency: 1
         max-concurrency: 10
         prefetch: 1
-
-  # Elasticsearch 搜索引擎配置
   elasticsearch:
     uris: http://127.0.0.1:9200
-    username: 
-    password: 
+    username:
+    password:
     connection-timeout: 10s
     socket-timeout: 5s
 
-# MyBatis-Plus 配置
 mybatis-plus:
-  mapper-locations: classpath*:/mapper/**/*.xml
-  type-aliases-package: com.sports.user.entity
-  configuration:
-    map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
   global-config:
     db-config:
       id-type: assign_id
       logic-delete-field: deleted
       logic-delete-value: 1
       logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
 
-# 日志配置
 logging:
   level:
-    com.sports: debug
     com.alibaba.nacos: warn
-    org.springframework.cloud.gateway: debug
