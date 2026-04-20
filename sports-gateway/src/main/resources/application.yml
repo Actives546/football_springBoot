@@ -1,32 +1,26 @@
-spring:
-  cloud:
-    gateway:
-      # 全局跨域配置
-      globalcors:
-        cors-configurations:
-          '[/**]':
-            allowed-origin-patterns: '*'  # 允许所有来源
-            allowed-headers: '*'  # 允许所有请求头
-            allowed-methods: '*'  # 允许所有请求方法
-            allow-credentials: true  # 允许携带凭证
-            max-age: 3600  # 预检请求缓存时间
-      # 路由配置
-      routes:
-        # 用户服务路由配置
-        - id: sports-user
-          uri: lb://sports-user  # 负载均衡到用户服务
-          predicates:
-            - Path=/user/**  # 路径匹配规则
-          filters:
-            - StripPrefix=1  # 去掉第一层路径前缀（/user）
-      # 开启从注册中心动态创建路由
-      discovery:
-        locator:
-          enabled: true  # 开启服务发现路由
-          lower-case-service-id: true  # 服务名小写
+server:
+  port: 8080
 
-# 日志配置
-logging:
-  level:
-    org.springframework.cloud.gateway: debug
-    com.alibaba.nacos: warn
+spring:
+  application:
+    name: sports-gateway
+  # 导入 Nacos 配置：网关只需要自己的专属配置
+  config:
+    import: "optional:nacos:sports-gateway.yml"
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.31.32:8848
+        username: nacos
+        password: nacos
+        namespace: public
+        group: DEFAULT_GROUP
+      config:
+        server-addr: 192.168.31.32:8848
+        username: nacos
+        password: nacos
+        namespace: public
+        group: DEFAULT_GROUP
+        file-extension: yml
+        import-check:
+          enabled: false

@@ -1,0 +1,48 @@
+# ============================================
+# Nacos 网关服务配置文件：sports-gateway.yml
+# 网关服务（sports-gateway）专属配置
+# ============================================
+
+# 服务端口
+server:
+  port: 8080
+
+# Spring 配置
+spring:
+  application:
+    name: sports-gateway
+
+  # Gateway 网关配置
+  cloud:
+    gateway:
+      # 全局跨域配置
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origin-patterns: '*'
+            allowed-headers: '*'
+            allowed-methods: '*'
+            allow-credentials: true
+            max-age: 3600
+      
+      # 路由配置
+      routes:
+        # 用户服务路由配置
+        - id: sports-user
+          uri: lb://sports-user
+          predicates:
+            - Path=/user/**
+          filters:
+            - StripPrefix=1
+      
+      # 开启从注册中心动态创建路由
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+
+# 网关服务特有日志级别
+logging:
+  level:
+    org.springframework.cloud.gateway: debug
+    com.alibaba.nacos: warn

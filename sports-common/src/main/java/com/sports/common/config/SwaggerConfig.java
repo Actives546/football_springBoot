@@ -1,5 +1,6 @@
 package com.sports.common.config;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import springfox.documentation.builders.ApiInfoBuilder;
@@ -14,9 +15,11 @@ import springfox.documentation.spring.web.plugins.Docket;
 /**
  * Swagger 接口文档配置类
  * 基于 Knife4j 增强 Swagger 文档功能
+ * 只在 Web MVC 环境生效（Gateway 使用 WebFlux，不支持 Springfox）
  */
 @Configuration
 @EnableOpenApi
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class SwaggerConfig {
 
     /**
@@ -27,7 +30,6 @@ public class SwaggerConfig {
         return new Docket(DocumentationType.OAS_30)
                 .apiInfo(apiInfo())
                 .select()
-                // 扫描所有 controller 包
                 .apis(RequestHandlerSelectors.basePackage("com.sports"))
                 .paths(PathSelectors.any())
                 .build();

@@ -1,87 +1,35 @@
+server:
+  port: 8081
+
 spring:
-  # MySQL 数据库配置
-  datasource:
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://127.0.0.1:3306/sports_user?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
-    username: root
-    password: root
-    hikari:
-      minimum-idle: 5
-      maximum-pool-size: 20
-      idle-timeout: 30000
-      pool-name: SportsHikariCP
-      max-lifetime: 1800000
-      connection-timeout: 30000
-
-  # Redis 分布式缓存配置
-  redis:
-    host: 127.0.0.1
-    port: 6379
-    password: 
-    database: 0
-    timeout: 10000ms
-    lettuce:
-      pool:
-        max-active: 8
-        max-wait: -1ms
-        max-idle: 8
-        min-idle: 0
-
-  # RabbitMQ 消息中间件配置
-  rabbitmq:
-    host: 127.0.0.1
-    port: 5672
-    username: guest
-    password: guest
-    virtual-host: /
-    publisher-confirm-type: correlated
-    publisher-returns: true
-    listener:
-      simple:
-        acknowledge-mode: auto
-        concurrency: 1
-        max-concurrency: 10
-        prefetch: 1
-
-  # Elasticsearch 搜索引擎配置
-  elasticsearch:
-    uris: http://127.0.0.1:9200
-    username: 
-    password: 
-    connection-timeout: 10s
-    socket-timeout: 5s
-
-# MyBatis-Plus 配置
-mybatis-plus:
-  mapper-locations: classpath*:/mapper/**/*.xml
-  type-aliases-package: com.sports.user.entity
-  configuration:
-    map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-  global-config:
-    db-config:
-      id-type: assign_id
-      logic-delete-field: deleted
-      logic-delete-value: 1
-      logic-not-delete-value: 0
+  application:
+    name: sports-user
+  # 导入 Nacos 配置：先导入公共配置，再导入服务专属配置（后者覆盖前者）
+  config:
+    import: "optional:nacos:common-config.yml,optional:nacos:sports-user.yml"
+  # Spring Boot 2.7+ 与 Springfox 3.0.0 兼容性配置
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.31.32:8848
+        username: nacos
+        password: nacos
+        namespace: public
+        group: DEFAULT_GROUP
+        weight: 1
+      config:
+        server-addr: 192.168.31.32:8848
+        username: nacos
+        password: nacos
+        namespace: public
+        group: DEFAULT_GROUP
+        file-extension: yml
 
 # Knife4j Swagger 配置
 knife4j:
   enable: true
   setting:
     language: zh_cn
-  openapi:
-    title: 用户服务接口文档
-    description: 数字化体育赋能平台 - 用户微服务接口文档
-    email: 
-    concat: Sports Team
-    version: 1.0.0
-    terms-of-service-url: 
-    license: Apache License, Version 2.0
-    license-url: https://www.apache.org/licenses/LICENSE-2.0.html
-
-# 日志配置
-logging:
-  level:
-    com.sports: debug
-    com.alibaba.nacos: warn

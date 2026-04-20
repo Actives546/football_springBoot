@@ -1,0 +1,41 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: sports-user
+  # 导入 Nacos 配置：先导入服务专属配置，再导入公共配置（顺序重要，后面覆盖前面）
+  config:
+    import: "optional:nacos:sports-user.yml,optional:nacos:common-config.yml"
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 192.168.31.32:8848   # 注意使用统一 Nacos 地址，不要用 127.0.0.1
+        username: nacos
+        password: nacos
+        namespace: public
+        group: DEFAULT_GROUP
+        weight: 1
+      config:
+        server-addr: 192.168.31.32:8848
+        username: nacos
+        password: nacos
+        namespace: public
+        group: DEFAULT_GROUP
+        file-extension: yml
+        # 不需要再写 shared-configs，因为已经通过 import 显式导入
+
+# 服务特有配置（不适合放在 Nacos 的部分，例如文档配置）
+knife4j:
+  enable: true
+  setting:
+    language: zh_cn
+  openapi:
+    title: 用户服务接口文档
+    description: 数字化体育赋能平台 - 用户微服务接口文档
+    version: 1.0.0
+
+# 可覆盖公共配置中的日志级别
+logging:
+  level:
+    com.sports: debug

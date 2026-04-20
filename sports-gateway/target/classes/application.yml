@@ -1,0 +1,45 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: sports-gateway
+  cloud:
+    nacos:
+      # 服务注册发现（保留）
+      discovery:
+        server-addr: 192.168.31.32:8848
+        username: nacos
+        password: nacos
+        namespace: public
+        group: DEFAULT_GROUP
+      # 关键：关闭配置强制检查，就不会报错了
+      config:
+        import-check:
+          enabled: false
+
+    gateway:
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowed-origin-patterns: '*'
+            allowed-headers: '*'
+            allowed-methods: '*'
+            allow-credentials: true
+            max-age: 3600
+      routes:
+        - id: sports-user
+          uri: lb://sports-user
+          predicates:
+            - Path=/user/**
+          filters:
+            - StripPrefix=1
+      discovery:
+        locator:
+          enabled: true
+          lower-case-service-id: true
+
+logging:
+  level:
+    org.springframework.cloud.gateway: debug
+    com.alibaba.nacos: warn
