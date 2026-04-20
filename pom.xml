@@ -41,6 +41,7 @@
         <module>sports-common</module>
         <module>sports-gateway</module>
         <module>sports-user</module>
+        <module>sports-auth</module>
     </modules>
 
     <!-- 依赖管理：统一版本控制，子模块按需引入 -->
