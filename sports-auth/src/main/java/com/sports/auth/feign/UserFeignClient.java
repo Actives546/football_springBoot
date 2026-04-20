@@ -21,7 +21,7 @@ public interface UserFeignClient {
      * @return 用户信息
      */
     @GetMapping("/getByUsername")
-    Result<UserDTO> getByUsername(@RequestParam String username);
+    Result<UserDTO> getByUsername(@RequestParam("username") String username);
 
     /**
      * 根据手机号查询用户
@@ -30,7 +30,7 @@ public interface UserFeignClient {
      * @return 用户信息
      */
     @GetMapping("/getByPhone")
-    Result<UserDTO> getByPhone(@RequestParam String phone);
+    Result<UserDTO> getByPhone(@RequestParam("phone") String phone);
 
     /**
      * 保存用户信息
@@ -48,5 +48,5 @@ public interface UserFeignClient {
      * @return 用户信息
      */
     @GetMapping("/getById")
-    Result<UserDTO> getById(@RequestParam Long id);
+    Result<UserDTO> getById(@RequestParam("id") Long id);
 }
