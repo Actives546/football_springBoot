@@ -1,6 +1,10 @@
-# sports-auth.yml
+# ============================================
+# Nacos 鉴权服务配置文件：sports-auth.yml
+# 鉴权服务（sports-auth）专属配置
+# ============================================
+
 jwt:
-  secret: sports-cloud-jwt-secret-key-2024-production
+  secret: sports-cloud-jwt-production-secret-key-2024-very-long-and-secure-key-for-hs256-algorithm
   expiration: 86400000
   header: Authorization
   prefix: Bearer

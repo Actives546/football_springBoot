@@ -34,6 +34,14 @@ spring:
             - Path=/user/**
           filters:
             - StripPrefix=1
+        
+        # 鉴权服务路由配置
+        - id: sports-auth
+          uri: lb://sports-auth
+          predicates:
+            - Path=/auth/**,/sms/**
+          filters:
+            - StripPrefix=1
       
       # 开启从注册中心动态创建路由
       discovery:

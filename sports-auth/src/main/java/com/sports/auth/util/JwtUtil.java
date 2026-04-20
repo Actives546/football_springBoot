@@ -4,10 +4,12 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.annotation.PostConstruct;
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
@@ -16,26 +18,38 @@ import java.util.Map;
 /**
  * JWT工具类
  */
+@Slf4j
 @Component
 public class JwtUtil {
 
-    @Value("${jwt.secret}")
+    @Value("${jwt.secret:sports-cloud-jwt-default-secret-key-2024-very-long-and-secure}")
     private String secret;
 
-    @Value("${jwt.expiration}")
+    @Value("${jwt.expiration:86400000}")
     private Long expiration;
 
-    @Value("${jwt.header}")
+    @Value("${jwt.header:Authorization}")
     private String header;
 
-    @Value("${jwt.prefix}")
+    @Value("${jwt.prefix:Bearer}")
     private String prefix;
 
     private Key key;
 
     @PostConstruct
     public void init() {
-        this.key = Keys.hmacShaKeyFor(secret.getBytes());
+        log.info("JWT配置 - secret长度: {}, expiration: {}", secret.length(), expiration);
+        byte[] keyBytes = secret.getBytes(StandardCharsets.UTF_8);
+        if (keyBytes.length < 32) {
+            log.warn("JWT密钥长度不足32字节，自动填充...");
+            StringBuilder sb = new StringBuilder(secret);
+            while (sb.length() < 32) {
+                sb.append(secret);
+            }
+            keyBytes = sb.substring(0, 32).getBytes(StandardCharsets.UTF_8);
+        }
+        this.key = Keys.hmacShaKeyFor(keyBytes);
+        log.info("JWT工具类初始化完成");
     }
 
     /**
