@@ -19,26 +19,7 @@
 
     <!-- 模块依赖 -->
     <dependencies>
-        <!-- JWT 令牌 -->
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-api</artifactId>
-            <version>0.11.5</version>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-impl</artifactId>
-            <version>0.11.5</version>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>io.jsonwebtoken</groupId>
-            <artifactId>jjwt-jackson</artifactId>
-            <version>0.11.5</version>
-            <scope>runtime</scope>
-        </dependency>
-        
-        <!-- 公共模块依赖 -->
+        <!-- 公共模块依赖（已包含JWT等公共依赖） -->
         <dependency>
             <groupId>com.sports</groupId>
             <artifactId>sports-common</artifactId>

@@ -49,6 +49,24 @@ spring:
           enabled: true
           lower-case-service-id: true
 
+# 网关认证配置
+gateway:
+  auth:
+    secret: sports-cloud-jwt-production-secret-key-2024-very-long-and-secure-key-for-hs256-algorithm
+    header: Authorization
+    prefix: Bearer
+    white-list:
+      - /auth/login/**
+      - /auth/register
+      - /sms/send
+      - /error
+      - /swagger-ui/**
+      - /swagger-resources/**
+      - /v2/api-docs
+      - /v3/api-docs
+      - /doc.html
+      - /webjars/**
+
 # 网关服务特有日志级别
 logging:
   level:

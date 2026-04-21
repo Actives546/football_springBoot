@@ -3,27 +3,32 @@ package com.sports.auth.service.impl;
 import cn.hutool.crypto.digest.BCrypt;
 import com.sports.auth.dto.LoginByPhoneDTO;
 import com.sports.auth.dto.LoginByUsernameDTO;
+import com.sports.auth.dto.LoginDTO;
 import com.sports.auth.dto.LoginResponseDTO;
 import com.sports.auth.dto.RegisterDTO;
 import com.sports.auth.feign.UserFeignClient;
 import com.sports.auth.service.AuthService;
 import com.sports.auth.service.SmsService;
-import com.sports.auth.util.JwtUtil;
+import com.sports.common.constant.CommonConstant;
+import com.sports.common.constant.HttpStatusConstant;
+import com.sports.common.constant.MessageConstant;
+import com.sports.common.constant.RedisKeyConstant;
 import com.sports.common.dto.UserDTO;
 import com.sports.common.entity.Result;
+import com.sports.common.enums.LoginTypeEnum;
+import com.sports.common.enums.SmsTypeEnum;
+import com.sports.common.enums.UserStatusEnum;
 import com.sports.common.exception.BusinessException;
+import com.sports.common.util.JwtUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.util.concurrent.TimeUnit;
 
-/**
- * 鉴权服务实现类
- */
 @Slf4j
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -40,73 +45,115 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
-    @Value("${jwt.expiration:86400000}")
-    private Long expiration;
-
-    private static final String TOKEN_BLACKLIST_PREFIX = "token:blacklist:";
-
     @Override
-    public LoginResponseDTO loginByUsername(LoginByUsernameDTO loginDTO) {
+    public LoginResponseDTO login(LoginDTO loginDTO) {
+        LoginTypeEnum loginType = LoginTypeEnum.getByCode(loginDTO.getLoginType());
+        if (loginType == null) {
+            throw new BusinessException("不支持的登录类型");
+        }
+
+        switch (loginType) {
+            case USERNAME:
+                return loginByUsernameInternal(loginDTO);
+            case PHONE:
+                return loginByPhoneInternal(loginDTO);
+            default:
+                throw new BusinessException("不支持的登录类型");
+        }
+    }
+
+    private LoginResponseDTO loginByUsernameInternal(LoginDTO loginDTO) {
+        if (!StringUtils.hasText(loginDTO.getUsername())) {
+            throw new BusinessException(MessageConstant.USERNAME_NOT_BLANK);
+        }
+        if (!StringUtils.hasText(loginDTO.getPassword())) {
+            throw new BusinessException(MessageConstant.PASSWORD_NOT_BLANK);
+        }
+
         Result<UserDTO> result = userFeignClient.getByUsername(loginDTO.getUsername());
-        if (result.getCode() != 200 || result.getData() == null) {
-            throw new BusinessException("用户名或密码错误");
+        if (result.getCode() != HttpStatusConstant.SUCCESS || result.getData() == null) {
+            throw new BusinessException(MessageConstant.USERNAME_OR_PASSWORD_ERROR);
         }
 
         UserDTO user = result.getData();
 
-        if (user.getStatus() != 1) {
-            throw new BusinessException("用户已被禁用");
+        if (!UserStatusEnum.isActive(user.getStatus())) {
+            throw new BusinessException(MessageConstant.USER_DISABLED);
         }
 
         if (!BCrypt.checkpw(loginDTO.getPassword(), user.getPassword())) {
-            throw new BusinessException("用户名或密码错误");
+            throw new BusinessException(MessageConstant.USERNAME_OR_PASSWORD_ERROR);
         }
 
         return buildLoginResponse(user);
+    }
+
+    private LoginResponseDTO loginByPhoneInternal(LoginDTO loginDTO) {
+        if (!StringUtils.hasText(loginDTO.getPhone())) {
+            throw new BusinessException(MessageConstant.PHONE_NOT_BLANK);
+        }
+        if (!StringUtils.hasText(loginDTO.getCode())) {
+            throw new BusinessException(MessageConstant.CODE_NOT_BLANK);
+        }
+
+        smsService.validateCode(loginDTO.getPhone(), loginDTO.getCode(), SmsTypeEnum.LOGIN.getCode());
+
+        Result<UserDTO> result = userFeignClient.getByPhone(loginDTO.getPhone());
+        if (result.getCode() != HttpStatusConstant.SUCCESS || result.getData() == null) {
+            throw new BusinessException(MessageConstant.PHONE_NOT_REGISTERED);
+        }
+
+        UserDTO user = result.getData();
+
+        if (!UserStatusEnum.isActive(user.getStatus())) {
+            throw new BusinessException(MessageConstant.USER_DISABLED);
+        }
+
+        return buildLoginResponse(user);
+    }
+
+    @Override
+    public LoginResponseDTO loginByUsername(LoginByUsernameDTO loginDTO) {
+        LoginDTO login = new LoginDTO();
+        login.setLoginType(LoginTypeEnum.USERNAME.getCode());
+        login.setUsername(loginDTO.getUsername());
+        login.setPassword(loginDTO.getPassword());
+        return login(login);
     }
 
     @Override
     public LoginResponseDTO loginByPhone(LoginByPhoneDTO loginDTO) {
-        smsService.validateCode(loginDTO.getPhone(), loginDTO.getCode(), "login");
-
-        Result<UserDTO> result = userFeignClient.getByPhone(loginDTO.getPhone());
-        if (result.getCode() != 200 || result.getData() == null) {
-            throw new BusinessException("该手机号未注册");
-        }
-
-        UserDTO user = result.getData();
-
-        if (user.getStatus() != 1) {
-            throw new BusinessException("用户已被禁用");
-        }
-
-        return buildLoginResponse(user);
+        LoginDTO login = new LoginDTO();
+        login.setLoginType(LoginTypeEnum.PHONE.getCode());
+        login.setPhone(loginDTO.getPhone());
+        login.setCode(loginDTO.getCode());
+        return login(login);
     }
 
     @Override
     public Boolean register(RegisterDTO registerDTO) {
-        smsService.validateCode(registerDTO.getPhone(), registerDTO.getCode(), "register");
+        smsService.validateCode(registerDTO.getPhone(), registerDTO.getCode(), SmsTypeEnum.REGISTER.getCode());
 
         Result<UserDTO> usernameResult = userFeignClient.getByUsername(registerDTO.getUsername());
         if (usernameResult.getData() != null) {
-            throw new BusinessException("用户名已存在");
+            throw new BusinessException(MessageConstant.USERNAME_EXISTS);
         }
 
         Result<UserDTO> phoneResult = userFeignClient.getByPhone(registerDTO.getPhone());
         if (phoneResult.getData() != null) {
-            throw new BusinessException("手机号已注册");
+            throw new BusinessException(MessageConstant.PHONE_EXISTS);
         }
 
         UserDTO userDTO = new UserDTO();
         BeanUtils.copyProperties(registerDTO, userDTO);
         userDTO.setPassword(BCrypt.hashpw(registerDTO.getPassword()));
-        userDTO.setStatus(1);
+        userDTO.setStatus(UserStatusEnum.ACTIVE.getCode());
         if (userDTO.getNickname() == null || userDTO.getNickname().trim().isEmpty()) {
-            userDTO.setNickname("用户" + registerDTO.getPhone().substring(7));
+            userDTO.setNickname(CommonConstant.DEFAULT_NICKNAME_PREFIX + registerDTO.getPhone().substring(7));
         }
 
         Result<Boolean> result = userFeignClient.saveUser(userDTO);
-        return result.getCode() == 200 && Boolean.TRUE.equals(result.getData());
+        return result.getCode() == HttpStatusConstant.SUCCESS && Boolean.TRUE.equals(result.getData());
     }
 
     @Override
@@ -116,17 +163,14 @@ public class AuthServiceImpl implements AuthService {
         }
 
         try {
-            String actualToken = token;
-            if (token.startsWith(jwtUtil.getPrefix() + " ")) {
-                actualToken = token.substring(jwtUtil.getPrefix().length() + 1);
-            }
+            String actualToken = jwtUtil.extractToken(token);
 
             Long userId = jwtUtil.getUserIdFromToken(actualToken);
             if (userId != null) {
                 long remainingTime = jwtUtil.getExpirationDateFromToken(actualToken).getTime() - System.currentTimeMillis();
                 if (remainingTime > 0) {
                     stringRedisTemplate.opsForValue().set(
-                            TOKEN_BLACKLIST_PREFIX + actualToken,
+                            RedisKeyConstant.getTokenBlacklistKey(actualToken),
                             String.valueOf(userId),
                             remainingTime,
                             TimeUnit.MILLISECONDS
@@ -146,7 +190,7 @@ public class AuthServiceImpl implements AuthService {
         LoginResponseDTO response = new LoginResponseDTO();
         response.setToken(token);
         response.setTokenType(jwtUtil.getPrefix());
-        response.setExpiresIn(expiration);
+        response.setExpiresIn(jwtUtil.getExpiration());
         response.setUser(user);
 
         return response;

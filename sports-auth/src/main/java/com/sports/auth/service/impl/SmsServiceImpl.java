@@ -2,6 +2,9 @@ package com.sports.auth.service.impl;
 
 import cn.hutool.core.util.RandomUtil;
 import com.sports.auth.service.SmsService;
+import com.sports.common.constant.CommonConstant;
+import com.sports.common.constant.MessageConstant;
+import com.sports.common.constant.RedisKeyConstant;
 import com.sports.common.exception.BusinessException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,9 +13,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.concurrent.TimeUnit;
 
-/**
- * 短信验证码服务实现类
- */
 @Slf4j
 @Service
 public class SmsServiceImpl implements SmsService {
@@ -20,25 +20,22 @@ public class SmsServiceImpl implements SmsService {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
-    private static final String CODE_KEY_PREFIX = "sms:code:";
-    private static final long CODE_EXPIRE_TIME = 5;
-
     @Override
     public Boolean sendCode(String phone, String type) {
-        if (phone == null || phone.length() != 11) {
-            throw new BusinessException("手机号格式不正确");
+        if (phone == null || phone.length() != CommonConstant.PHONE_LENGTH) {
+            throw new BusinessException(MessageConstant.PHONE_FORMAT_ERROR);
         }
 
-        String key = CODE_KEY_PREFIX + type + ":" + phone;
+        String key = RedisKeyConstant.getSmsCodeKey(type, phone);
 
         String existingCode = stringRedisTemplate.opsForValue().get(key);
         if (existingCode != null) {
-            throw new BusinessException("验证码发送过于频繁，请稍后再试");
+            throw new BusinessException(MessageConstant.CODE_SEND_FREQUENTLY);
         }
 
-        String code = RandomUtil.randomNumbers(6);
+        String code = RandomUtil.randomNumbers(CommonConstant.VERIFICATION_CODE_LENGTH);
 
-        stringRedisTemplate.opsForValue().set(key, code, CODE_EXPIRE_TIME, TimeUnit.MINUTES);
+        stringRedisTemplate.opsForValue().set(key, code, CommonConstant.VERIFICATION_CODE_EXPIRE_MINUTES, TimeUnit.MINUTES);
 
         log.info("向手机号 {} 发送验证码: {}", phone, code);
 
@@ -47,23 +44,23 @@ public class SmsServiceImpl implements SmsService {
 
     @Override
     public Boolean validateCode(String phone, String code, String type) {
-        if (phone == null || phone.length() != 11) {
-            throw new BusinessException("手机号格式不正确");
+        if (phone == null || phone.length() != CommonConstant.PHONE_LENGTH) {
+            throw new BusinessException(MessageConstant.PHONE_FORMAT_ERROR);
         }
 
-        if (code == null || code.length() != 6) {
-            throw new BusinessException("验证码格式不正确");
+        if (code == null || code.length() != CommonConstant.VERIFICATION_CODE_LENGTH) {
+            throw new BusinessException(MessageConstant.CODE_FORMAT_ERROR);
         }
 
-        String key = CODE_KEY_PREFIX + type + ":" + phone;
+        String key = RedisKeyConstant.getSmsCodeKey(type, phone);
         String storedCode = stringRedisTemplate.opsForValue().get(key);
 
         if (storedCode == null) {
-            throw new BusinessException("验证码已过期或不存在");
+            throw new BusinessException(MessageConstant.CODE_EXPIRED);
         }
 
         if (!storedCode.equals(code)) {
-            throw new BusinessException("验证码错误");
+            throw new BusinessException(MessageConstant.CODE_ERROR);
         }
 
         stringRedisTemplate.delete(key);

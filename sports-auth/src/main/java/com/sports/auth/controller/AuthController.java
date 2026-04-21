@@ -2,6 +2,7 @@ package com.sports.auth.controller;
 
 import com.sports.auth.dto.LoginByPhoneDTO;
 import com.sports.auth.dto.LoginByUsernameDTO;
+import com.sports.auth.dto.LoginDTO;
 import com.sports.auth.dto.LoginResponseDTO;
 import com.sports.auth.dto.RegisterDTO;
 import com.sports.auth.service.AuthService;
@@ -13,9 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-/**
- * 鉴权控制器
- */
 @RestController
 @RequestMapping("/auth")
 @Api(tags = "鉴权接口")
@@ -24,8 +22,17 @@ public class AuthController {
     @Autowired
     private AuthService authService;
 
+    @PostMapping("/login")
+    @ApiOperation("统一登录接口（支持用户名密码和手机号验证码两种方式）")
+    public Result<LoginResponseDTO> login(
+            @ApiParam(value = "登录参数", required = true)
+            @Validated @RequestBody LoginDTO loginDTO) {
+        LoginResponseDTO response = authService.login(loginDTO);
+        return Result.success(response);
+    }
+
     @PostMapping("/login/username")
-    @ApiOperation("用户名密码登录")
+    @ApiOperation("用户名密码登录（兼容旧接口）")
     public Result<LoginResponseDTO> loginByUsername(
             @ApiParam(value = "登录参数", required = true)
             @Validated @RequestBody LoginByUsernameDTO loginDTO) {
@@ -34,7 +41,7 @@ public class AuthController {
     }
 
     @PostMapping("/login/phone")
-    @ApiOperation("手机号验证码登录")
+    @ApiOperation("手机号验证码登录（兼容旧接口）")
     public Result<LoginResponseDTO> loginByPhone(
             @ApiParam(value = "登录参数", required = true)
             @Validated @RequestBody LoginByPhoneDTO loginDTO) {
