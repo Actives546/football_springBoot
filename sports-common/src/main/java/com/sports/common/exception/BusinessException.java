@@ -1,26 +1,18 @@
 package com.sports.common.exception;
 
-/**
- * 业务异常类
- * 用于业务逻辑错误时抛出
- */
+import com.sports.common.constant.HttpStatusConstant;
+
 public class BusinessException extends RuntimeException {
 
     private static final long serialVersionUID = 1L;
 
-    /**
-     * 错误状态码
-     */
     private Integer code;
 
-    /**
-     * 错误消息
-     */
     private String message;
 
     public BusinessException(String message) {
         super(message);
-        this.code = 500;
+        this.code = HttpStatusConstant.INTERNAL_SERVER_ERROR;
         this.message = message;
     }
 
