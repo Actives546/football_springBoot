@@ -24,3 +24,20 @@ spring:
         file-extension: yml
         import-check:
           enabled: false
+
+gateway:
+  auth:
+    secret: sports-cloud-jwt-gateway-secret-key-2024-very-long-and-secure-key-for-hs256
+    header: Authorization
+    prefix: Bearer
+    white-list:
+      - /auth/login/**
+      - /auth/register
+      - /sms/send
+      - /error
+      - /swagger-ui/**
+      - /swagger-resources/**
+      - /v2/api-docs
+      - /v3/api-docs
+      - /doc.html
+      - /webjars/**
