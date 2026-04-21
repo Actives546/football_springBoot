@@ -1,10 +1,6 @@
 package com.sports.gateway.filter;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sports.common.constant.HttpStatusConstant;
-import com.sports.common.constant.MessageConstant;
-import com.sports.common.entity.Result;
+import com.sports.common.exception.GatewayException;
 import com.sports.common.util.JwtUtil;
 import com.sports.gateway.config.GatewayAuthProperties;
 import lombok.extern.slf4j.Slf4j;
@@ -12,19 +8,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
-import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.StringUtils;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
+import java.net.InetSocketAddress;
+import java.util.Arrays;
+import java.util.List;
 
 @Slf4j
 @Component
@@ -35,15 +29,20 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     private final AntPathMatcher pathMatcher = new AntPathMatcher();
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
+    private static final List<String> LOCALHOST_IPS = Arrays.asList(
+            "127.0.0.1",
+            "0:0:0:0:0:0:0:1",
+            "localhost"
+    );
 
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
-        ServerHttpResponse response = exchange.getResponse();
         String path = request.getPath().value();
 
         log.info("网关拦截请求: {} {}", request.getMethod(), path);
+
+        checkIpAllowed(request);
 
         if (isWhiteList(path)) {
             log.info("请求路径在白名单中，直接放行: {}", path);
@@ -53,30 +52,46 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         String token = extractToken(request);
         if (!StringUtils.hasText(token)) {
             log.warn("请求缺少令牌: {}", path);
-            return writeUnauthorizedResponse(response, MessageConstant.TOKEN_MISSING);
+            throw GatewayException.tokenMissing();
         }
 
-        try {
-            String secret = gatewayAuthProperties.getSecret();
-            if (secret == null || secret.isEmpty()) {
-                log.error("JWT密钥未配置");
-                return writeUnauthorizedResponse(response, MessageConstant.SYSTEM_ERROR);
-            }
+        String secret = gatewayAuthProperties.getSecret();
+        if (secret == null || secret.isEmpty()) {
+            log.error("JWT密钥未配置");
+            throw GatewayException.secretNotConfigured();
+        }
 
-            Long userId = JwtUtil.getUserIdFromTokenStatic(token, secret);
-            String username = JwtUtil.getUsernameFromTokenStatic(token, secret);
+        Long userId = JwtUtil.getUserIdFromTokenStatic(token, secret);
+        String username = JwtUtil.getUsernameFromTokenStatic(token, secret);
 
-            log.info("令牌验证通过, userId: {}, username: {}", userId, username);
+        log.info("令牌验证通过, userId: {}, username: {}", userId, username);
 
-            ServerHttpRequest mutatedRequest = request.mutate()
-                    .header("X-User-Id", String.valueOf(userId))
-                    .header("X-Username", username)
-                    .build();
+        ServerHttpRequest mutatedRequest = request.mutate()
+                .header("X-User-Id", String.valueOf(userId))
+                .header("X-Username", username)
+                .build();
 
-            return chain.filter(exchange.mutate().request(mutatedRequest).build());
-        } catch (Exception e) {
-            log.warn("令牌验证失败: {}", e.getMessage());
-            return writeUnauthorizedResponse(response, MessageConstant.TOKEN_INVALID);
+        return chain.filter(exchange.mutate().request(mutatedRequest).build());
+    }
+
+    private void checkIpAllowed(ServerHttpRequest request) {
+        InetSocketAddress remoteAddress = request.getRemoteAddress();
+        if (remoteAddress == null) {
+            log.warn("无法获取客户端IP地址");
+            throw GatewayException.ipNotAllowed();
+        }
+
+        String clientIp = remoteAddress.getAddress().getHostAddress();
+        String hostName = remoteAddress.getHostName();
+
+        log.info("客户端IP: {}, HostName: {}", clientIp, hostName);
+
+        boolean isLocalhost = LOCALHOST_IPS.stream()
+                .anyMatch(ip -> ip.equalsIgnoreCase(clientIp) || ip.equalsIgnoreCase(hostName));
+
+        if (!isLocalhost) {
+            log.warn("非本地IP访问被拒绝: {}", clientIp);
+            throw GatewayException.ipNotAllowed();
         }
     }
 
@@ -101,22 +116,6 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         }
 
         return authorization;
-    }
-
-    private Mono<Void> writeUnauthorizedResponse(ServerHttpResponse response, String message) {
-        response.setStatusCode(HttpStatus.UNAUTHORIZED);
-        response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
-
-        Result<Void> result = Result.error(HttpStatusConstant.UNAUTHORIZED, message);
-
-        try {
-            String json = objectMapper.writeValueAsString(result);
-            DataBuffer buffer = response.bufferFactory().wrap(json.getBytes(StandardCharsets.UTF_8));
-            return response.writeWith(Mono.just(buffer));
-        } catch (JsonProcessingException e) {
-            log.error("序列化响应失败", e);
-            return response.setComplete();
-        }
     }
 
     @Override

@@ -64,6 +64,13 @@ public class JwtUtil {
         return createToken(claims, username, expiration);
     }
 
+    public String refreshToken(String token) {
+        Claims claims = getClaimsFromToken(token);
+        Long userId = claims.get("userId", Long.class);
+        String username = claims.getSubject();
+        return generateToken(userId, username);
+    }
+
     private String createToken(Map<String, Object> claims, String subject, Long expirationTime) {
         Date now = new Date();
         Date expirationDate = new Date(now.getTime() + expirationTime);
@@ -134,6 +141,13 @@ public class JwtUtil {
         claims.put("userId", userId);
         claims.put("username", username);
         return createTokenStatic(claims, username, secret, expirationTime);
+    }
+
+    public static String refreshTokenStatic(String token, String secret, Long expirationTime) {
+        Claims claims = getClaimsFromTokenStatic(token, secret);
+        Long userId = claims.get("userId", Long.class);
+        String username = claims.getSubject();
+        return generateTokenStatic(userId, username, secret, expirationTime);
     }
 
     private static String createTokenStatic(Map<String, Object> claims, String subject, String secret, Long expirationTime) {

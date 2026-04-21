@@ -9,6 +9,7 @@ import com.sports.auth.dto.RegisterDTO;
 import com.sports.auth.feign.UserFeignClient;
 import com.sports.auth.service.AuthService;
 import com.sports.auth.service.SmsService;
+import com.sports.auth.strategy.LoginStrategy;
 import com.sports.common.constant.CommonConstant;
 import com.sports.common.constant.HttpStatusConstant;
 import com.sports.common.constant.MessageConstant;
@@ -25,8 +26,10 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 @Slf4j
@@ -45,71 +48,27 @@ public class AuthServiceImpl implements AuthService {
     @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
+    private final Map<String, LoginStrategy> loginStrategyMap = new ConcurrentHashMap<>();
+
+    @Autowired
+    public AuthServiceImpl(List<LoginStrategy> loginStrategies) {
+        for (LoginStrategy strategy : loginStrategies) {
+            loginStrategyMap.put(strategy.getLoginType(), strategy);
+        }
+        log.info("登录策略初始化完成，支持的登录类型: {}", loginStrategyMap.keySet());
+    }
+
     @Override
     public LoginResponseDTO login(LoginDTO loginDTO) {
-        LoginTypeEnum loginType = LoginTypeEnum.getByCode(loginDTO.getLoginType());
-        if (loginType == null) {
-            throw new BusinessException("不支持的登录类型");
+        String loginType = loginDTO.getLoginType();
+        LoginStrategy strategy = loginStrategyMap.get(loginType);
+
+        if (strategy == null) {
+            throw new BusinessException("不支持的登录类型: " + loginType);
         }
 
-        switch (loginType) {
-            case USERNAME:
-                return loginByUsernameInternal(loginDTO);
-            case PHONE:
-                return loginByPhoneInternal(loginDTO);
-            default:
-                throw new BusinessException("不支持的登录类型");
-        }
-    }
-
-    private LoginResponseDTO loginByUsernameInternal(LoginDTO loginDTO) {
-        if (!StringUtils.hasText(loginDTO.getUsername())) {
-            throw new BusinessException(MessageConstant.USERNAME_NOT_BLANK);
-        }
-        if (!StringUtils.hasText(loginDTO.getPassword())) {
-            throw new BusinessException(MessageConstant.PASSWORD_NOT_BLANK);
-        }
-
-        Result<UserDTO> result = userFeignClient.getByUsername(loginDTO.getUsername());
-        if (result.getCode() != HttpStatusConstant.SUCCESS || result.getData() == null) {
-            throw new BusinessException(MessageConstant.USERNAME_OR_PASSWORD_ERROR);
-        }
-
-        UserDTO user = result.getData();
-
-        if (!UserStatusEnum.isActive(user.getStatus())) {
-            throw new BusinessException(MessageConstant.USER_DISABLED);
-        }
-
-        if (!BCrypt.checkpw(loginDTO.getPassword(), user.getPassword())) {
-            throw new BusinessException(MessageConstant.USERNAME_OR_PASSWORD_ERROR);
-        }
-
-        return buildLoginResponse(user);
-    }
-
-    private LoginResponseDTO loginByPhoneInternal(LoginDTO loginDTO) {
-        if (!StringUtils.hasText(loginDTO.getPhone())) {
-            throw new BusinessException(MessageConstant.PHONE_NOT_BLANK);
-        }
-        if (!StringUtils.hasText(loginDTO.getCode())) {
-            throw new BusinessException(MessageConstant.CODE_NOT_BLANK);
-        }
-
-        smsService.validateCode(loginDTO.getPhone(), loginDTO.getCode(), SmsTypeEnum.LOGIN.getCode());
-
-        Result<UserDTO> result = userFeignClient.getByPhone(loginDTO.getPhone());
-        if (result.getCode() != HttpStatusConstant.SUCCESS || result.getData() == null) {
-            throw new BusinessException(MessageConstant.PHONE_NOT_REGISTERED);
-        }
-
-        UserDTO user = result.getData();
-
-        if (!UserStatusEnum.isActive(user.getStatus())) {
-            throw new BusinessException(MessageConstant.USER_DISABLED);
-        }
-
-        return buildLoginResponse(user);
+        log.info("使用登录策略: {}", loginType);
+        return strategy.login(loginDTO);
     }
 
     @Override
@@ -182,17 +141,5 @@ public class AuthServiceImpl implements AuthService {
         }
 
         return true;
-    }
-
-    private LoginResponseDTO buildLoginResponse(UserDTO user) {
-        String token = jwtUtil.generateToken(user.getId(), user.getUsername());
-
-        LoginResponseDTO response = new LoginResponseDTO();
-        response.setToken(token);
-        response.setTokenType(jwtUtil.getPrefix());
-        response.setExpiresIn(jwtUtil.getExpiration());
-        response.setUser(user);
-
-        return response;
     }
 }
