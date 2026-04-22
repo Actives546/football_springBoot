@@ -1,0 +1,5 @@
+E:\WebProject\new_sole_add\football_springBoot\sports-gateway\src\main\java\com\sports\gateway\filter\AuthGlobalFilter.java
+E:\WebProject\new_sole_add\football_springBoot\sports-gateway\src\main\java\com\sports\gateway\util\GatewayWhiteListUtil.java
+E:\WebProject\new_sole_add\football_springBoot\sports-gateway\src\main\java\com\sports\gateway\config\GatewayAuthProperties.java
+E:\WebProject\new_sole_add\football_springBoot\sports-gateway\src\main\java\com\sports\gateway\SportsGatewayApplication.java
+E:\WebProject\new_sole_add\football_springBoot\sports-gateway\src\main\java\com\sports\gateway\exception\GatewayGlobalExceptionHandler.java
