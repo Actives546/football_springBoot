@@ -5,7 +5,7 @@
 
 # 服务端口
 server:
-  port: 8080
+  port: 8079
 
 # Spring 配置
 spring:
@@ -24,7 +24,7 @@ spring:
             allowed-methods: '*'
             allow-credentials: true
             max-age: 3600
-      
+
       # 路由配置
       routes:
         # 用户服务路由配置
@@ -34,38 +34,20 @@ spring:
             - Path=/user/**
           filters:
             - StripPrefix=1
-        
+
         # 鉴权服务路由配置
         - id: sports-auth
           uri: lb://sports-auth
           predicates:
             - Path=/auth/**,/sms/**
           filters:
-            - StripPrefix=1
-      
+            - StripPrefix=0
+
       # 开启从注册中心动态创建路由
       discovery:
         locator:
           enabled: true
           lower-case-service-id: true
-
-# 网关认证配置
-gateway:
-  auth:
-    secret: sports-cloud-jwt-production-secret-key-2024-very-long-and-secure-key-for-hs256-algorithm
-    header: Authorization
-    prefix: Bearer
-    white-list:
-      - /auth/login/**
-      - /auth/register
-      - /sms/send
-      - /error
-      - /swagger-ui/**
-      - /swagger-resources/**
-      - /v2/api-docs
-      - /v3/api-docs
-      - /doc.html
-      - /webjars/**
 
 # 网关服务特有日志级别
 logging:
