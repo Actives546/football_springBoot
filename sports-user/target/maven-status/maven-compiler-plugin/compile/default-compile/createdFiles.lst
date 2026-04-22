@@ -1,0 +1,6 @@
+com\sports\user\entity\User.class
+com\sports\user\service\UserService.class
+com\sports\user\SportsUserApplication.class
+com\sports\user\controller\UserController.class
+com\sports\user\mapper\UserMapper.class
+com\sports\user\service\impl\UserServiceImpl.class
