@@ -4,8 +4,6 @@ import com.sports.common.exception.GatewayException;
 import com.sports.common.util.JwtUtil;
 import com.sports.gateway.config.GatewayAuthProperties;
 import com.sports.gateway.util.GatewayWhiteListUtil;
-import io.jsonwebtoken.ExpiredJwtException;
-import io.jsonwebtoken.JwtException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
@@ -45,64 +43,49 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
-        // 1.1 获取请求对象和请求路径
         ServerHttpRequest request = exchange.getRequest();
         String path = request.getPath().value();
 
-        // 1.2 打印请求日志（仅打印关键信息）
         log.info("网关请求: {} {}", request.getMethod(), path);
 
-        // 2. IP地址校验
-        checkIpAllowed(request);
+        return checkIpAllowed(request)
+                .then(Mono.defer(() -> {
+                    if (GatewayWhiteListUtil.isWhiteList(path, gatewayAuthProperties.getWhiteList())) {
+                        log.debug("白名单路径放行: {}", path);
+                        return chain.filter(exchange);
+                    }
 
-        // 3. 白名单路径校验
-        if (GatewayWhiteListUtil.isWhiteList(path, gatewayAuthProperties.getWhiteList())) {
-            log.debug("白名单路径放行: {}", path);
-            return chain.filter(exchange);
-        }
+                    String token = extractToken(request);
+                    if (!StringUtils.hasText(token)) {
+                        log.warn("请求缺少令牌: {}", path);
+                        return Mono.error(GatewayException.tokenMissing());
+                    }
 
-        // 4. JWT令牌校验
-        // 4.1 从请求中提取令牌
-        String token = extractToken(request);
-        if (!StringUtils.hasText(token)) {
-            log.warn("请求缺少令牌: {}", path);
-            throw GatewayException.tokenMissing();
-        }
+                    String secret = gatewayAuthProperties.getSecret();
+                    if (!StringUtils.hasText(secret)) {
+                        log.error("JWT密钥未配置");
+                        return Mono.error(GatewayException.secretNotConfigured());
+                    }
 
-        // 4.2 校验JWT密钥配置
-        String secret = gatewayAuthProperties.getSecret();
-        if (!StringUtils.hasText(secret)) {
-            log.error("JWT密钥未配置");
-            throw GatewayException.secretNotConfigured();
-        }
+                    Long userId;
+                    String username;
+                    try {
+                        userId = JwtUtil.getUserIdFromTokenStatic(token, secret);
+                        username = JwtUtil.getUsernameFromTokenStatic(token, secret);
+                    } catch (Exception e) {
+                        log.warn("令牌验证失败: {}, 错误: {}", path, e.getMessage());
+                        return Mono.error(GatewayException.tokenInvalid());
+                    }
 
-        // 4.3 解析并验证JWT令牌
-        Long userId;
-        String username;
-        try {
-            userId = JwtUtil.getUserIdFromTokenStatic(token, secret);
-            username = JwtUtil.getUsernameFromTokenStatic(token, secret);
-        } catch (ExpiredJwtException e) {
-            // 4.3.1 令牌已过期
-            log.warn("令牌已过期: {}", path);
-            throw GatewayException.tokenExpired();
-        } catch (JwtException e) {
-            // 4.3.2 令牌无效（签名错误、格式错误等）
-            log.warn("令牌无效: {}, 错误: {}", path, e.getMessage());
-            throw GatewayException.tokenInvalid();
-        }
+                    log.debug("令牌验证通过, userId: {}, path: {}", userId, path);
 
-        // 4.4 打印令牌验证通过日志（仅打印关键信息）
-        log.debug("令牌验证通过, userId: {}, path: {}", userId, path);
+                    ServerHttpRequest mutatedRequest = request.mutate()
+                            .header("X-User-Id", String.valueOf(userId))
+                            .header("X-Username", username)
+                            .build();
 
-        // 5. 将用户信息添加到请求头，传递给下游服务
-        ServerHttpRequest mutatedRequest = request.mutate()
-                .header("X-User-Id", String.valueOf(userId))
-                .header("X-Username", username)
-                .build();
-
-        // 6. 继续执行过滤器链
-        return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                    return chain.filter(exchange.mutate().request(mutatedRequest).build());
+                }));
     }
 
     /**
@@ -110,25 +93,25 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
      * 检查请求的IP地址是否为本地IP，只有本地IP才能访问网关
      *
      * @param request 服务器HTTP请求对象
+     * @return Mono<Void> 响应式返回值
      */
-    private void checkIpAllowed(ServerHttpRequest request) {
-        // 2.1 获取客户端远程地址
+    private Mono<Void> checkIpAllowed(ServerHttpRequest request) {
         InetSocketAddress remoteAddress = request.getRemoteAddress();
         if (remoteAddress == null) {
             log.warn("无法获取客户端IP地址");
-            throw GatewayException.ipNotAllowed();
+            return Mono.error(GatewayException.ipNotAllowed());
         }
 
-        // 2.2 获取客户端IP和主机名
         String clientIp = remoteAddress.getAddress() != null ? remoteAddress.getAddress().getHostAddress() : null;
         String hostName = remoteAddress.getHostName();
 
-        // 2.3 检查是否为本地IP
         boolean isLocalhost = GatewayWhiteListUtil.isLocalhost(clientIp, hostName);
         if (!isLocalhost) {
             log.warn("非本地IP访问被拒绝: {}", clientIp);
-            throw GatewayException.ipNotAllowed();
+            return Mono.error(GatewayException.ipNotAllowed());
         }
+
+        return Mono.empty();
     }
 
     /**
@@ -139,10 +122,8 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
      * @return 提取的令牌字符串，如果没有则返回null
      */
     private String extractToken(ServerHttpRequest request) {
-        // 3.1 获取请求头
         HttpHeaders headers = request.getHeaders();
 
-        // 3.2 获取Authorization请求头的值
         String headerName = gatewayAuthProperties.getHeader();
         if (!StringUtils.hasText(headerName)) {
             log.warn("令牌请求头名称未配置");
@@ -150,24 +131,20 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         }
         String authorization = headers.getFirst(headerName);
 
-        // 3.3 检查Authorization是否为空
         if (!StringUtils.hasText(authorization)) {
             return null;
         }
 
-        // 3.4 获取令牌前缀
         String prefix = gatewayAuthProperties.getPrefix();
         if (!StringUtils.hasText(prefix)) {
             log.warn("令牌前缀未配置");
             return authorization;
         }
 
-        // 3.5 检查是否以指定前缀开头，并提取令牌
         if (authorization.startsWith(prefix + " ")) {
             return authorization.substring(prefix.length() + 1);
         }
 
-        // 3.6 如果没有前缀，直接返回Authorization值
         return authorization;
     }
 
