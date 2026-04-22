@@ -141,10 +141,6 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
     private String extractToken(ServerHttpRequest request) {
         // 3.1 获取请求头
         HttpHeaders headers = request.getHeaders();
-        if (headers == null) {
-            log.warn("请求头为空");
-            return null;
-        }
 
         // 3.2 获取Authorization请求头的值
         String headerName = gatewayAuthProperties.getHeader();
