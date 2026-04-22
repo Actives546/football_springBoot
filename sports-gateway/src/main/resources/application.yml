@@ -1,8 +1,10 @@
 
+server:
+  port: 8079
+
 spring:
   application:
     name: sports-gateway
-  # 导入 Nacos 配置：网关只需要自己的专属配置
   config:
     import: "optional:nacos:sports-gateway"
   cloud:
@@ -31,6 +33,8 @@ gateway:
     white-list:
       - /auth/login/**
       - /auth/register
+      - /user/login
+      - /user/register
       - /sms/send
       - /error
       - /swagger-ui/**
