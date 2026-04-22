@@ -1,0 +1,5 @@
+com\sports\gateway\SportsGatewayApplication.class
+com\sports\gateway\exception\GatewayGlobalExceptionHandler.class
+com\sports\gateway\config\GatewayAuthProperties.class
+com\sports\gateway\util\GatewayWhiteListUtil.class
+com\sports\gateway\filter\AuthGlobalFilter.class
