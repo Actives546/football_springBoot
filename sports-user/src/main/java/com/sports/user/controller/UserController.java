@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
  * 用户控制器
  */
 @RestController
-@RequestMapping("/user")
+@RequestMapping("/")
 @Api(tags = "用户管理接口")
 public class UserController {
 

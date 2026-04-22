@@ -18,6 +18,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+/**
+ * 手机号验证码登录策略
+ */
 @Slf4j
 @Component
 public class PhoneCodeLoginStrategy implements LoginStrategy {
@@ -31,6 +34,32 @@ public class PhoneCodeLoginStrategy implements LoginStrategy {
     @Autowired
     private JwtUtil jwtUtil;
 
+    /**
+     * 1. 手机号验证码登录
+     *
+     * 1.1 验证参数
+     *     - 检查手机号是否为空
+     *     - 检查验证码是否为空
+     *
+     * 1.2 验证验证码
+     *     - 调用SmsService验证手机号和验证码
+     *     - 如果验证失败，抛出对应异常
+     *
+     * 1.3 查询用户信息
+     *     - 通过Feign调用用户服务，根据手机号查询用户
+     *     - 如果用户不存在，抛出"手机号未注册"异常
+     *
+     * 1.4 检查用户状态
+     *     - 检查用户是否被禁用
+     *     - 如果被禁用，抛出"用户已被禁用"异常
+     *
+     * 1.5 构建登录响应
+     *     - 生成JWT令牌
+     *     - 封装用户信息和令牌信息
+     *
+     * @param loginDTO 登录参数
+     * @return 登录响应
+     */
     @Override
     public LoginResponseDTO login(LoginDTO loginDTO) {
         log.info("执行手机号验证码登录策略");
@@ -63,6 +92,12 @@ public class PhoneCodeLoginStrategy implements LoginStrategy {
         return LoginTypeEnum.PHONE.getCode();
     }
 
+    /**
+     * 构建登录响应
+     *
+     * @param user 用户信息
+     * @return 登录响应DTO
+     */
     private LoginResponseDTO buildLoginResponse(UserDTO user) {
         String token = jwtUtil.generateToken(user.getId(), user.getUsername());
 
