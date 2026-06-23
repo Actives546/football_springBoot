@@ -22,7 +22,7 @@
         <spring-boot.version>2.7.6</spring-boot.version>
         
         <!-- Spring Cloud 版本：2021.0.5.0 -->
-        <spring-cloud.version>2021.0.5.0</spring-cloud.version>
+        <spring-cloud.version>2021.0.5</spring-cloud.version>
         
         <!-- Spring Cloud Alibaba 版本：2021.0.5.0 -->
         <spring-cloud-alibaba.version>2021.0.5.0</spring-cloud-alibaba.version>

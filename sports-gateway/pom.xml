@@ -47,6 +47,12 @@
         <dependency>
             <groupId>com.sports</groupId>
             <artifactId>sports-common</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-web</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
     </dependencies>
 

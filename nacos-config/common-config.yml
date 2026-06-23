@@ -1,0 +1,49 @@
+# common-config.yml
+spring:
+  redis:
+    host: 127.0.0.1
+    port: 6379
+    password: 123456
+    database: 0
+    timeout: 10000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-wait: -1ms
+        max-idle: 8
+        min-idle: 0
+  rabbitmq:
+    host: 127.0.0.1
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    listener:
+      simple:
+        acknowledge-mode: auto
+        concurrency: 1
+        max-concurrency: 10
+        prefetch: 1
+  elasticsearch:
+    uris: http://127.0.0.1:9200
+    username:
+    password:
+    connection-timeout: 10s
+    socket-timeout: 5s
+
+mybatis-plus:
+  global-config:
+    db-config:
+      id-type: assign_id
+      logic-delete-field: deleted
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+
+logging:
+  level:
+    com.alibaba.nacos: warn

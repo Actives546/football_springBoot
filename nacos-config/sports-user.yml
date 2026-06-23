@@ -1,0 +1,18 @@
+# sports-user.yml
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://127.0.0.1:3306/sports_user?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+    hikari:
+      minimum-idle: 5
+      maximum-pool-size: 20
+      idle-timeout: 30000
+      pool-name: SportsHikariCP
+      max-lifetime: 1800000
+      connection-timeout: 30000
+
+mybatis-plus:
+  type-aliases-package: com.sports.user.entity   # 实体类包路径
+  mapper-locations: classpath*:/mapper/**/*.xml
